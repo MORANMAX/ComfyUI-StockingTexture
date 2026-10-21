@@ -1,0 +1,266 @@
+/* The node's panel. Everything the page itself needs is in panel/style.css; this is only the frame around it.
+ *
+ * NOT LOADED BY ComfyUI ON ITS OWN. `WEB_DIRECTORY` hands the frontend every `**/*.js` under it and nothing
+ * else, so a stylesheet sitting here is served but never linked — and the node's panel is then laid out with no
+ * styles at all: the strip has no height, its two panes stack instead of sitting side by side, and the resize
+ * grip is an invisible 18px div. `loadStyles()` in stocking.js links this file against the extension's own URL.
+ *
+ * The rules that make the layout work are mirrored in that file's CSS_FALLBACK, for the case where the link
+ * cannot be served. Anything added here that the layout depends on (a flex direction, a height, a display) has
+ * to be mirrored there too; anything cosmetic does not.
+ */
+
+.stocking-dom {
+  box-sizing: border-box;
+}
+
+.stocking-dom * {
+  box-sizing: border-box;
+}
+
+.stocking-bar button:hover:not(:disabled) {
+  filter: brightness(1.18);
+}
+
+.stocking-bar button:active:not(:disabled) {
+  filter: brightness(0.9);
+}
+
+.stocking-bar button:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+/* The page is laid out for a window; inside the node it must not inherit ComfyUI's own font or background. */
+.stocking-frame {
+  color-scheme: dark;
+}
+
+/* ComfyUI puts its own padding around DOM widgets; the page draws its own edge-to-edge layout. */
+.litegraph .dom-widget.stocking-dom,
+.comfy-multiline-input.stocking-dom {
+  padding: 0;
+}
+
+/* ------------------------------------------------------------------ 成品 (the finished picture)
+ *
+ * A strip under the page. `clamp` keeps it useful at any node height: it takes about a third of the panel, so
+ * making the node taller makes the picture bigger, with a floor so it is never a sliver and a ceiling so it
+ * never eats the editor. Collapsed, it is only its bar.
+ */
+.stocking-result {
+  flex: 0 0 auto;
+  height: clamp(150px, 28%, 420px);
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  background: #1a1a1a;
+  border-top: 1px solid #3a3a3a;
+}
+
+.stocking-result.collapsed {
+  height: auto;
+}
+
+.stocking-result.collapsed .stocking-result-body {
+  display: none;
+}
+
+.stocking-result-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
+  padding: 4px 6px;
+  font-size: 12px;
+  background: #262626;
+  border-bottom: 1px solid #3a3a3a;
+}
+
+.stocking-result-bar button {
+  padding: 3px 9px;
+  border: 1px solid #4a4a4a;
+  border-radius: 4px;
+  color: #e8e8e8;
+  font-size: 12px;
+  line-height: 1.5;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.stocking-result-bar button:hover {
+  filter: brightness(1.18);
+}
+
+.stocking-result-bar button:active {
+  filter: brightness(0.9);
+}
+
+.stocking-result-title {
+  color: #cfcfcf;
+  flex: 0 0 auto;
+}
+
+.stocking-result-note {
+  color: #9a9a9a;
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 处理前 / 成品 sit side by side, meeting at a one-pixel seam: one strip, two answers. */
+.stocking-result-body {
+  flex: 1 1 auto;
+  position: relative;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  overflow: hidden;
+  background: #141414;
+}
+
+.stocking-pane {
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  background: #141414;
+}
+
+.stocking-pane + .stocking-pane {
+  border-left: 1px solid #3a3a3a;
+}
+
+.stocking-pane-head {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: 0 0 auto;
+  padding: 3px 5px;
+  font-size: 11px;
+  background: #1e1e1e;
+  border-bottom: 1px solid #333;
+}
+
+.stocking-pane-head button {
+  padding: 2px 7px;
+  border: 1px solid #4a4a4a;
+  border-radius: 4px;
+  color: #e8e8e8;
+  font-size: 11px;
+  line-height: 1.5;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.stocking-pane-head button:hover {
+  filter: brightness(1.18);
+}
+
+.stocking-pane-head button:active {
+  filter: brightness(0.9);
+}
+
+.stocking-pane-label {
+  color: #cfcfcf;
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.stocking-pane-spacer {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.stocking-pane-body {
+  flex: 1 1 auto;
+  position: relative;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.stocking-pane-img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  cursor: zoom-in;
+  display: block;
+}
+
+.stocking-pane-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 10px;
+  color: #8a8a8a;
+  font-size: 12px;
+  text-align: center;
+}
+
+/* `[hidden]` loses to any `display` an author rule sets, and these all set one. Without this the strip
+ * would be on screen from the moment the node is created, and the thumbnail it is meant to hide would cover the
+ * "还没有成品" it is meant to show. */
+.stocking-result[hidden],
+.stocking-result-body[hidden],
+.stocking-pane[hidden],
+.stocking-pane-img[hidden],
+.stocking-pane-empty[hidden],
+.stocking-split[hidden] {
+  display: none;
+}
+
+/* ------------------------------------------------------------------ the split handle
+ *
+ * Between the page and the strip: dragging it trades their heights, which is how the editing area is sized
+ * without resizing the whole node. Hidden while there is no strip to divide from (see syncSplit).
+ */
+.stocking-split {
+  flex: 0 0 auto;
+  height: 6px;
+  cursor: ns-resize;
+  background: #262626;
+  border-top: 1px solid #3a3a3a;
+  border-bottom: 1px solid #2a2a2a;
+}
+
+.stocking-split:hover,
+.stocking-split.dragging {
+  background: #3a4a5a;
+}
+
+/* ------------------------------------------------------------------ the resize grip
+ *
+ * ComfyUI draws the node's own grip on the canvas; the DOM widget covers it, so this is the same corner drawn
+ * inside the widget instead. Hidden in full screen, where there is no node to resize.
+ */
+.stocking-grip {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 18px;
+  height: 18px;
+  z-index: 40;
+  cursor: nwse-resize;
+  background: linear-gradient(135deg, transparent 0 52%, #6a6a6a 52% 62%, transparent 62% 72%, #6a6a6a 72% 82%,
+    transparent 82%);
+  opacity: 0.75;
+}
+
+.stocking-grip:hover {
+  opacity: 1;
+  background: linear-gradient(135deg, transparent 0 52%, #9a9a9a 52% 62%, transparent 62% 72%, #9a9a9a 72% 82%,
+    transparent 82%);
+}
+
+.stocking-dom[data-full='1'] .stocking-grip {
+  display: none;
+}

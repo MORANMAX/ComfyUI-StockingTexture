@@ -1,0 +1,11 @@
+# 仓库里统一存 LF：跨平台（Linux 上跑 ComfyUI 的人）不会因为 CRLF 出问题
+* text=auto eol=lf
+
+*.png binary
+*.ico binary
+*.jpg binary
+*.jpeg binary
+*.webp binary
+*.pth binary
+*.safetensors binary
+*.psd binary

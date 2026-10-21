@@ -1,0 +1,20 @@
+# 模型权重：约 450 MB，自己下载，见 README「安装」
+models/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# 自检脚本的产物
+e2e_out.png
+output/
+
+# 编辑器 / 系统
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini
