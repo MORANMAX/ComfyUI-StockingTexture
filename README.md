@@ -52,14 +52,14 @@
 | **压缩包，解压即用** | 下载 [**v1.0.0 的 zip**](https://github.com/MORANMAX/ComfyUI-StockingTexture/releases/download/v1.0.0/ComfyUI-StockingTexture-v1.0.0.zip)，解压到 `custom_nodes/`，得到 `custom_nodes/ComfyUI-StockingTexture/` | 不想装 git，或者要固定一个能用的版本 |
 | **仓库页 Download ZIP** | 仓库首页 **Code → Download ZIP** | 同上，但要的是最新代码而不是 v1.0.0 |
 
-三种都要重启 ComfyUI。**压缩包和仓库里都不含模型**（共约 450MB），模型按下面的表另放。
+三种都要重启 ComfyUI。**压缩包和仓库里都不含模型**（共约 450MB）——模型文件太大（GitHub 单文件上限 100MB，SAM 那个是 358MB），而且它们是第三方权重、有各自的许可，所以不随仓库分发。模型按下面的表自己下、自己放。
 
 首次使用需要两个模型（工具会自动在本节点 `models/` 目录里找，找不到会在日志里打印路径）：
 
-| 模型 | 位置 |
-|---|---|
-| `sam_vit_b_01ec64.pth` | 本节点的 `models/` 目录 |
-| `Depth-Anything-V2-Small-hf/` | 本节点 `models/` 目录（可选；缺了只影响自动方位精度和亮点） |
+| 模型 | 放在哪 | 从哪下 |
+|---|---|---|
+| `sam_vit_b_01ec64.pth`<br>（358 MB，**必需**） | 本节点的 `models/` 目录。也可以就留在浏览器的下载目录 `~/Downloads/`（工具会去那儿找），或在 `%LOCALAPPDATA%\StockingTexture\settings.json` 里用 `sam_checkpoint` 指到任何位置 | [SAM 官方](https://dl.fbaipublicfiles.com/segment_anything/sam_vit_b_01ec64.pth)（点开就是下载） |
+| `Depth-Anything-V2-Small-hf/`<br>（95 MB，可选） | 本节点 `models/Depth-Anything-V2-Small-hf/`，整个文件夹。**不放也能跑**：会自动用 Hugging Face 缓存（第一次联网下） | [HuggingFace](https://huggingface.co/depth-anything/Depth-Anything-V2-Small-hf/files) 下 `config.json`、`preprocessor_config.json`、`model.safetensors` 三个文件 |
 
 依赖：`opencv-python`、`numpy`、`torch`、`transformers`、`segment-anything`、`Pillow`。
 ComfyUI 基本都自带，只缺 `segment-anything`：
