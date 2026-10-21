@@ -2,6 +2,8 @@
 
 给插画里的丝袜加真实的针织纹理（无摩尔纹）。移植自 [silvermoong/stocking-texture-tool](https://github.com/silvermoong/stocking-texture-tool)（MIT）。
 
+> **当前版本：v1.1.0** —— [下载压缩包](https://github.com/MORANMAX/ComfyUI-StockingTexture/releases/latest) · 更新内容见下面「更新日志」
+
 > 要改代码，先看 [**`STRUCTURE.md`**](STRUCTURE.md) —— 哪个文件干什么、动之前要知道什么、本版本还有哪些没做。
 
 ## 来源与改动
@@ -12,7 +14,9 @@
 
 **用法上最大的区别：它接在「保存图像」之后。** 保存图片的节点照常把原图存下来，本节点接在它后面，把加了纹理的成品再交出去——所以原图和成品各有一份。它自己也是 OUTPUT_NODE，不接保存节点、直接站在那个位置同样能跑（成品会写进 `output/stocking/`）。
 
-### 优化
+### 更新日志 v1.1.0
+
+**相对原版加了什么**
 
 | | 内容 |
 |---|---|
@@ -20,7 +24,9 @@
 | **2. 材质区分：丝袜 / 丝质** | 原版只叫"丝袜材质"，没考虑别的丝质物品——它在丝袜边缘那一圈做了弯折，放到裙子、手套、袖子上就有点出戏。现在选部位时可以指定材质：**「丝质」不画边缘的弯折**。入口在添加选区那个「**…**」里面。 |
 | **3. 图片锁定** | 加了一个 🔒 锁定图片：锁住之后视图不再跟着拖动 / 缩放，安心画细节不会把画面拖跑。 |
 
-### 修复的 BUG
+**修掉的问题**
+
+> 这三条**都只存在于本整合版**，原版没有——原版没有 ComfyUI 节点、没有 socket，也没有上面新加的平滑和材质区分。列在这里是因为它们影响过这个版本的使用、现在已经修好，不是原版的 bug 清单。
 
 | | 内容 |
 |---|---|
@@ -49,8 +55,8 @@
 | 方式 | 怎么做 | 适合 |
 |---|---|---|
 | **git clone** | `git clone https://github.com/MORANMAX/ComfyUI-StockingTexture.git`（放进 `custom_nodes/`），以后 `git pull` 就能更新 | 想跟着更新 |
-| **压缩包，解压即用** | 下载 [**v1.0.0 的 zip**](https://github.com/MORANMAX/ComfyUI-StockingTexture/releases/download/v1.0.0/ComfyUI-StockingTexture-v1.0.0.zip)，解压到 `custom_nodes/`，得到 `custom_nodes/ComfyUI-StockingTexture/` | 不想装 git，或者要固定一个能用的版本 |
-| **仓库页 Download ZIP** | 仓库首页 **Code → Download ZIP** | 同上，但要的是最新代码而不是 v1.0.0 |
+| **压缩包，解压即用** | 下载 [**v1.1.0 的 zip**](https://github.com/MORANMAX/ComfyUI-StockingTexture/releases/download/v1.1.0/ComfyUI-StockingTexture-v1.1.0.zip)，解压到 `custom_nodes/`，得到 `custom_nodes/ComfyUI-StockingTexture/` | 不想装 git，或者要固定一个能用的版本 |
+| **仓库页 Download ZIP** | 仓库首页 **Code → Download ZIP** | 同上，但要的是最新代码而不是 v1.1.0 |
 
 三种都要重启 ComfyUI。**压缩包和仓库里都不含模型**（共约 450MB）——模型文件太大（GitHub 单文件上限 100MB，SAM 那个是 358MB），而且它们是第三方权重、有各自的许可，所以不随仓库分发。模型按下面的表自己下、自己放。
 
@@ -230,15 +236,13 @@ node custom_nodes/ComfyUI-StockingTexture/smooth_check.mjs
 ## 常见问题
 
 **节点变成一条很长的竖条，怎么拉都拉不回来（别人的机器上才会遇到）**
-旧版本（本轮之前）的 bug，已修。只有关闭了「**Nodes 2.0**」（设置 → Comfy  → Modern Node Design）的 ComfyUI 才会中：
+本整合版早期（v1.0 之前）的 bug，已修。只有关闭了「**Nodes 2.0**」（设置 → Comfy → Modern Node Design）的 ComfyUI 才会中：
 那个模式下前端每帧都按 widget 高度重算节点高度，而旧代码里"面板 widget 要占多高"恰好又等于"节点现在多高"，于是节点每帧长高 92px，一路长成竖条。
 
-> **真机已复现并验证（ComfyUI 前端 1.53.10，经典画布 + 真 `drawNode`）**
-> 修复版：连续 121 帧高度恒为 `900`（0 增长）。
-> 同条件把面板 widget 换回旧写法：`900 → 994 → 2874 → 6634 → 12274`，**约 +94px/帧**，与离线复刻的 +92px/帧吻合。
-> 结论：根因、修法、修复效果三者都在真机上闭环。对照截图见 `J:\WORK\2026-10-16-13-20-27\stocking-longstrip\真机对照-*.png`。
+> 已在真机复现并验证（ComfyUI 前端 1.53.10，经典画布 + 真 `drawNode`）：修复版连续 121 帧高度恒为 `900`（0 增长）；
+> 同条件把面板 widget 换回旧写法，`900 → 994 → 2874 → 6634 → 12274`，**约 +94px/帧**，与离线复刻的 +92px/帧吻合。
 
-- **换成本轮之后的版本即可**（`web/stocking.js` 已修）。
+- **升到 v1.0 或更高版本即可**（`web/stocking.js` 已修）。
 - 换之前想把已经撑坏的节点救回来：选中节点，在浏览器控制台（F12）执行
   `app.graph._nodes.filter(n => n.type === 'StockingTexture').forEach(n => n.setSize([960, 900])); app.graph.setDirtyCanvas(true, true)`
   然后重新保存一次工作流（否则下次打开还是旧的尺寸）。
