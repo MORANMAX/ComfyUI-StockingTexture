@@ -44,7 +44,15 @@
 
 ## 安装
 
-放进 `ComfyUI/custom_nodes/ComfyUI-StockingTexture`，重启 ComfyUI。
+三种方式，效果一样，选顺手的：
+
+| 方式 | 怎么做 | 适合 |
+|---|---|---|
+| **git clone** | `git clone https://github.com/MORANMAX/ComfyUI-StockingTexture.git`（放进 `custom_nodes/`），以后 `git pull` 就能更新 | 想跟着更新 |
+| **压缩包，解压即用** | 下载 [**v1.0.0 的 zip**](https://github.com/MORANMAX/ComfyUI-StockingTexture/releases/download/v1.0.0/ComfyUI-StockingTexture-v1.0.0.zip)，解压到 `custom_nodes/`，得到 `custom_nodes/ComfyUI-StockingTexture/` | 不想装 git，或者要固定一个能用的版本 |
+| **仓库页 Download ZIP** | 仓库首页 **Code → Download ZIP** | 同上，但要的是最新代码而不是 v1.0.0 |
+
+三种都要重启 ComfyUI。**压缩包和仓库里都不含模型**（共约 450MB），模型按下面的表另放。
 
 首次使用需要两个模型（工具会自动在本节点 `models/` 目录里找，找不到会在日志里打印路径）：
 
