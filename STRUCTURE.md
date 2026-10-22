@@ -115,7 +115,7 @@ ComfyUI-StockingTexture/
 
 | 文件 | 行 | 职责 |
 |---|---|---|
-| `stocking.js` | 1389 | 用 `addDOMWidget` 把 iframe 塞进节点；自己 link `stocking.css`（`loadStyles`）；顶栏六个按钮（自动选择丝袜 / 取用节点图片 / 原图放大 / 全屏 / **送入下游**（`PUSH_AVAILABLE=false`，置灰保留）/ 状态）；界面下方一条**预览条**（处理前 / 成品**左右并排** + 刷新 / 放大 / **保存到 output** / 收起）；编辑区与预览条之间的**分隔条**；右下角**拖动把手**；拒收 ComfyUI 自己那份成品图（`hideOutputPicture`）；`onExecuted` 里把节点最新的 `sid` 推给面板；widget ↔ 界面 look 的双向同步（`WIDGET_LOOK` / `flushWidgetLook` / `syncWidgets`） |
+| `stocking.js` | 1389 | 用 `addDOMWidget` 把 iframe 塞进节点；自己 link `stocking.css`（`loadStyles`）；顶栏六个按钮（自动选择丝袜 / 取用节点图片 / 原图放大 / 全屏 / **送入下游**（`PUSH_AVAILABLE=false`，置灰保留）/ 状态）；界面下方一条**预览条**（处理前 / 成品**左右并排** + 刷新 / 放大 / **保存** / 收起）；编辑区与预览条之间的**分隔条**；右下角**拖动把手**；拒收 ComfyUI 自己那份成品图（`hideOutputPicture`）；`onExecuted` 里把节点最新的 `sid` 推给面板；widget ↔ 界面 look 的双向同步（`WIDGET_LOOK` / `flushWidgetLook` / `syncWidgets`） |
 | `stocking.css` | 266 | 节点外壳样式。`panel/style.css` 管页面内部，这个只管外面那一圈。**ComfyUI 不会自动加载它**，见下面第 7 条 |
 
 `stocking.js` 里的几个设计决定：
@@ -515,7 +515,7 @@ widget.computeLayoutSize = () => ({ minHeight: MIN_H, minWidth: 0 });
 - 点格子的图或「放大」→ 复用原版图放大那套浮层（`buildViewer`），源是**原尺寸**的渲染（`/result` / `/art` 不带 `w`）。
 - **两格的保存从第七轮起不是同一件事**（`buildPane` 的 `toOutput` 选项 + `savePane` 分叉）：
   - **处理前** → 下载。取 `/art` 原尺寸 PNG，走 blob + `<a download>`，文件名 `<文档名>-原图.png`。这张图是节点**收到**的，不是它产出的，落到 `output/` 没有意义。
-  - **成品** → 「保存到 output」，走 `saveToOutput`：`POST /api/doc/{id}/export` `{kind:'png', name:<前缀>}`，服务端渲染后写 `output/stocking/<前缀>.png`，状态栏回显 `已保存到 output/stocking/xxx.png`（`outputRel` 把绝对路径截到 `output/` 之后）。**不排队、不重新采样** —— 这是它取代「送入下游」的全部理由。同名覆盖；节点自己执行时写的文件带时间戳，不受影响。
+  - **成品** → 「保存」，走 `saveToOutput`：`POST /api/doc/{id}/export` `{kind:'png', name:<前缀>}`，服务端渲染后写 `output/stocking/<前缀>.png`，状态栏回显 `已保存到 output/stocking/xxx.png`（`outputRel` 把绝对路径截到 `output/` 之后）。**不排队、不重新采样** —— 这是它取代「送入下游」的全部理由。同名覆盖；节点自己执行时写的文件带时间戳，不受影响。
   - 成品放大浮层顶栏那个按钮（`buildViewer('成品（整体）', {save:true})` 的 `onSave`）走的是同一个 `savePane(p,'result')`，所以两个入口行为一致。
 - 顺手修掉了上一轮记下的小瑕疵：原来用 `card.sid !== p.viewer.src` 判断浮层是不是在显示旧图，而 `openViewer` 从没设过 `v.src`，所以那个比较永远不成立。现在按文档 id 比（`p.__viewerSid`）。
 
@@ -628,7 +628,7 @@ socket 只有执行时才更新，所以按钮 = 渲染并锁定成品 + 排队�
 - `smooth_check.mjs` —— 把 `panel/app.js` 里的 `smoothLine` **原文抽出来**跑：抖动 75.8°/点 → 1.2°/点，端点不动，
   3000 点一次重建 0.25 ms（三角核版本是 40 ms，掉到 24fps，所以必须前缀和 + 单调双指针）。
 
-### 5.10 第七轮：「送入下游」收起来，成品改成「保存到 output」 ✅ 离线已验证
+### 5.10 第七轮：「送入下游」收起来，成品改成「保存」 ✅ 离线已验证
 
 **用户反馈**：前两个 BUG 修好了，但优化跑偏了 ——「送往下游变成了开一轮工作流，也就是生成一轮图片」。
 于是要的是"点一下把成品存到 output"，而那个按钮留着但先禁用，日后有需要再说。
@@ -646,6 +646,7 @@ socket 只有执行时才更新，所以按钮 = 渲染并锁定成品 + 排队�
 它接受 `{kind:'png', name}`，不传 `params` 就按 `doc.look` 渲染，返回 `{file, folder, notes}`。
 `saveToOutput` 只是把这条路由接到按钮上，再把绝对路径截成 `output/stocking/xxx.png` 显示。
 它和 `/render/*`、`/result` 走同一个 `docstore.render`，所以状态栏说"已保存"的那张就是预览条上那张。
+（**这句话第七轮时其实还不成立**——当时 `/export` 仍自己渲染，两条路会分叉；第八轮才真正并过来，见 §5.11。）
 
 **(3) 为什么成品不再下载、处理前仍然下载。** 成品是节点的**产物**，`output/` 才是它的家（ComfyUI 的历史、
 下游节点、用户找文件都看那里）；处理前是节点的**输入**，用户在别处已经有原图，需要副本时才是下载。
@@ -654,6 +655,29 @@ socket 只有执行时才更新，所以按钮 = 渲染并锁定成品 + 排队�
 `POST /export {kind:'png', name:'probe'}` → 断言 200、路径含 `/output/stocking/`、**文件真在盘上**、
 尺寸等于原图、文件名是 `probe.png`。`folder_paths` 在测试里被 stub 到一个 `tempfile.mkdtemp()` 下的 `output/`，
 所以既验到了真文件，又不会往节点目录里丢测试图。全绿。
+
+### 5.11 第八轮：「保存」写出的必须是预览那张 ✅ 离线已验证
+
+**问题**：点「保存」，`output/stocking/` 里的和预览条上那张不一样；最坏情况存下去的是**没加纹理的原图**。
+
+**根因**：`/export` 是仅剩的一条"自己渲染"的出口 —— 它自己 `_base_look(d)` 解析参数、自己用 `_scene_for(d)`
+这个单槽缓存拿 Scene，而预览条（`GET /result`）和 socket（`nodes.apply`）都走 `docstore.render`。
+两条路各自缓存、各自解析，**缓存一过期就分叉**。第六轮修的是 `docstore.render` 忽略 `doc.look`，
+没管 `/export`，于是同一个病在保存按钮上又活了一轮（症状换成"存出来是原图"）。
+
+**修法**
+
+- `routes.export_doc` 改成 `out_rgb, info = await loop.run_in_executor(None, docstore.render, d, q)`，
+  然后 `export.export(d, None, q, path, kind, rgb=out_rgb)` —— 写盘不再自己渲染。
+  渲染放 executor 里，事件循环不堵（和 `/push` 同一个理由）。
+- `info['empty']` 为真（一个像素都没纹理）时直接 `ValueError`：**拒绝**把原图当成品写下去。
+- 像素变化 <1.5% 时往 `notes` 里塞一条提示。这个阈值有实测依据：密度 132 只剩 1% 像素变化（防摩尔纹把
+  纹理淡化了），密度 90 是 4%，1.5% 正好卡在"有纹理"和"没有"之间。
+- 前端按钮名统一成「保存」（两格同名，靠 title 区分去向），失败文案覆盖"成品就是原图"这一种拒绝。
+
+**约束（别再犯）**：凡是"把成品写到某处"的新代码，一律走 `docstore.render`。
+`export.export` 的 `scene` 参数现在只有 guides 和历史调用方还在用，新代码不要传 scene 让它自己渲。
+判断"这个文档现在渲染出来是什么"的唯一入口就是 `docstore.render`，任何绕过它的写法都会在缓存过期时给出第二意见。
 
 ---
 

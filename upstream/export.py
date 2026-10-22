@@ -113,10 +113,14 @@ def stocking_layer(art_rgb, out_rgb, alpha):
     return np.dstack([np.clip(np.round(rgb), 0, 255), a8]).astype(np.uint8)
 
 
-def export(doc, scene, params, path, kind='png'):
+def export(doc, scene, params, path, kind='png', rgb=None):
     """Write one file of `kind` (KINDS) to `path` (see destination), replacing any file there. png and cutout render
     with `params` (look.clean_params) on `scene`; guides need neither. Returns {'file', 'seconds', 'sparkles_ready'}.
-    Raises ValueError with a message for the user."""
+    Raises ValueError with a message for the user.
+
+    `rgb` is an already-finished RGB uint8 render to write instead of drawing one from `scene`. The node's 保存
+    button passes it (routes.export_doc renders through docstore.render), so the file is the picture the 成品 pane
+    is showing rather than whatever this module's own `scene.render` would make of the same document."""
     t0 = time.perf_counter()
     path = destination(path, kind, source=doc.path)
     ready = True
@@ -128,7 +132,11 @@ def export(doc, scene, params, path, kind='png'):
         strokes, dividers = doc.stroke_alpha(), doc.divider_alpha()
         _replace(path, lambda p: psd_io.write_guides(p, doc.art, regions, strokes, colors, sparkle, dividers))
     else:
-        out_bgr, info = scene.render(params)
+        if rgb is None:
+            out_bgr, info = scene.render(params)
+        else:
+            out_bgr = np.ascontiguousarray(rgb[..., ::-1])      # the renderers and cv2 work in BGR
+            info = {'sparkles_ready': True}
         ready = info['sparkles_ready']
         if kind == 'png':
             _replace(path, lambda p: knit.write(p, out_bgr))

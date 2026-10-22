@@ -72,7 +72,7 @@ const STRIP_H_KEY = 'stocking_strip_h';
 // 「送入下游」is off. It worked, but the way it worked was the problem: putting the picture on the socket means
 // running the graph, and running the graph means sampling again — one click bought a whole extra pass, which is
 // most of what 「执行」 costs. The gesture people actually wanted it for is "keep this picture", and that is what
-// 「保存到 output」 does now (a render plus a file write, no queue). Everything behind this flag stays: flip it to
+// 「保存」 does now (a render plus a file write, no queue). Everything behind this flag stays: flip it to
 // true and the button comes back with its pin, its queue call and its 状态 messages intact.
 const PUSH_AVAILABLE = false;
 
@@ -198,7 +198,7 @@ function buildPanel(node) {
       + '上游有缓存时采样器不会重跑；如果采样器的种子设成「每次随机」，执行会重新采样成另一张图，'
       + '那种情况下请把种子固定住再送'
     : '暂不可用：把成品送到下游要执行一次工作流，也就等于重新采样一轮，代价太大。'
-      + '要留住这张成品请用「成品」右边的「保存到 output」，它只渲染和写盘，不进队列。'
+      + '要留住这张成品请用「成品」右边的「保存」，它只渲染和写盘，不进队列。'
       + '（功能本身保留着，把 stocking.js 里的 PUSH_AVAILABLE 改回 true 就恢复。）';
   push.style.cssText = btnStyle('#2d5f8a') + (PUSH_AVAILABLE ? '' : 'opacity:.4;cursor:not-allowed;');
 
@@ -282,7 +282,7 @@ function buildViewer(label, { save = false } = {}) {
   // Only the 成品 viewer gets this: it is the picture the user is trying to keep.
   const saveBtn = save ? document.createElement('button') : null;
   if (saveBtn) {
-    saveBtn.textContent = '保存到 output';
+    saveBtn.textContent = '保存';
     saveBtn.title = '把这张原始尺寸的成品写进 ComfyUI 的 output/stocking/（不执行工作流）';
     saveBtn.style.cssText = btnStyle('#2d5f8a');
   }
@@ -538,7 +538,7 @@ async function runAdopt(p, { quiet = false } = {}) {
 function adopted(p, st) {
   if (!st) return;
   if (st.id) p.__sid = st.id;
-  if (st.name) p.__name = st.name;              // 保存到 output names the file after it
+  if (st.name) p.__name = st.name;              // 保存 names the file after it
   if (st.id) scheduleResult(p, 400);
   scheduleWidgetSync(p, 700);                   // this document's look is now the node widgets' truth
 }
@@ -793,10 +793,9 @@ function buildPane(label, tip, { toOutput = false } = {}) {
   zoom.title = `放大看${label}：滚轮缩放，拖动平移，双击适应窗口，Esc 关闭`;
 
   const save = document.createElement('button');
-  save.textContent = toOutput ? '保存到 output' : '保存';
+  save.textContent = '保存';
   save.title = toOutput
-    ? '按界面当前设置渲染一次成品，直接写进 ComfyUI 的 output/stocking/：不执行工作流、不重新采样，'
-      + '同名文件会被覆盖'
+    ? '把「成品」按界面当前设置写进 ComfyUI 的 output/stocking/：不执行工作流、不重新采样，同名文件会被覆盖'
     : `把${label}按原始尺寸下载到你的电脑（PNG）`;
 
   head.append(name, spacer, zoom, save);
@@ -849,7 +848,7 @@ function buildResult() {
   const body = document.createElement('div');
   body.className = 'stocking-result-body';
   const before = buildPane('处理前', '节点收到的那张图，还没有加纹理');
-  const after = buildPane('成品', '加过纹理的那张图：点「保存到 output」就写进 ComfyUI 的 output/stocking/',
+  const after = buildPane('成品', '加过纹理的那张图：点「保存」就写进 ComfyUI 的 output/stocking/',
                           { toOutput: true });
   body.append(before.root, after.root);
 
@@ -1113,8 +1112,8 @@ async function refreshResult(p) {
   }
 }
 
-// 保存. Both panes can hand their picture over as a file, and the browser can do that on its own — no server
-// support, and nothing written into ComfyUI's output tree (that is what the node's 保存到output_save does).
+// 保存. Both panes have one, and they mean different things: 处理前 hands the picture the node was *given* over
+// as a download, 成品 writes the picture the node *makes* into ComfyUI's output tree (see saveToOutput).
 async function saveResult(p) {
   return savePane(p, 'result');
 }
@@ -1145,6 +1144,10 @@ async function savePane(p, kind) {
 // note when a part was left without one. What it does *not* do is queue anything — no run, no re-sample, which is
 // the whole point of having it here instead of on the 送入下游 button.
 //
+// What it writes is the 成品 pane's own render: the route draws it through `docstore.render`, the call `GET
+// /result` makes, so the file cannot be a different picture from the one above the button. (It used to draw its
+// own, off a cached scene, and could save the untouched 处理前 — the bug this button had.)
+//
 // Overwriting the previous save of the same name is deliberate: one picture, one file. The node's own runs name
 // their frames with a timestamp, so nothing they wrote can be clobbered by this.
 async function saveToOutput(p) {
@@ -1158,13 +1161,15 @@ async function saveToOutput(p) {
     const note = (res.notes || []).join('；');
     flashResult(p, `已保存到 ${outputRel(res.file)}${note ? `（${note}）` : ''}`, '#7fbf7f');
   } catch (e) {
-    // The one refusal worth rewording: 「导出」 treats "no part has a 走向线 yet" as an error, but from this button
-    // it is just the first thing a new user hits — the 成品 is the untouched original at that point, and the fix is
-    // to draw on the picture, not to try again. Matching on the message is loose, but the fallback is its own text.
+    // The refusals worth rewording: both of them mean "there is no texture to save yet", which from this button is
+    // just the first thing a new user hits — the 成品 is the untouched original at that point, and the fix is to
+    // draw on the picture, not to try again. The server refuses rather than writing that original, so the message
+    // has to explain it. Matching on the text is loose, but the fallback is its own text.
     const msg = String(e.message || '');
-    const noParts = msg.includes('能出纹理的部位');
-    flashResult(p, noParts ? '还没有可出纹理的部位（成品就是原图）：先在「引导」页画一条走向线' : '保存失败：' + msg,
-                noParts ? '#d08a60' : '#d06a6a');
+    const noTexture = msg.includes('能出纹理的部位') || msg.includes('成品就是原图');
+    flashResult(p, noTexture ? '还没有可出纹理的部位（成品就是原图，不保存原图）：先在「引导」页画一条走向线'
+                             : '保存失败：' + msg,
+                noTexture ? '#d08a60' : '#d06a6a');
   }
 }
 
